@@ -2,6 +2,6 @@
 export default {
   preset: 'ts-jest',
   testEnvironment: 'node',
-  testMatch: ['<rootDir>/day*/test.ts'],
+  testMatch: ['<rootDir>/day*/*.test.ts'],
   testPathIgnorePatterns: ['/node_modules/', 'templates'],
 };

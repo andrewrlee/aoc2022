@@ -19,8 +19,8 @@ export default function (plop) {
 			templateFile: 'templates/input.txt',
 		},{
 			type: 'add',
-			path: `day${day}/test.ts`,
-			templateFile: 'templates/test.ts',
+			path: `day${day}/challenge.test.ts`,
+			templateFile: 'templates/challenge.test.ts',
 			data: { day: day}
 		}
 	]  
