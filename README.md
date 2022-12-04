@@ -1,6 +1,7 @@
 # AoC 2022
+![CI](https://github.com/andrewrlee/aoc2022/actions/workflows/ci.yaml/badge.svg)
 
-with a JFDI attitude, I just want to taste to those sweet, sweet stars. 
+with a JFDI attitude, I just want to taste to those sweet, sweet stars.
 
 Currently using node/typescript.
 
