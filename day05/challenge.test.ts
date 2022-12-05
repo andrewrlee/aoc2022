@@ -22,21 +22,14 @@ const rotate = <T>(arr: T[][]) =>
 
 const createGrid: () => string[][] = () =>
   rotate(
-    input.reduce(
-      (acc, row) => {
-        const [cont, rows] = acc;
-        if (!cont || row.match(/[\d]+/)?.[0]) return [false, rows];
-        return [
-          true,
-          rows.concat([
-            chunk(row.split(""), 4)
-              .map((cell) => cell.filter((c) => ![" ", "[", "]"].includes(c)))
-              .map((c) => c[0]),
-          ]),
-        ];
-      },
-      [true, []] as [boolean, string[][]]
-    )[1] as string[][]
+    input.reduce((acc, row) => {
+      if (row.match(/[\d]+/)?.[0]) return acc;
+      return acc.concat([
+        chunk(row.split(""), 4)
+          .map((cell) => cell.filter((c) => ![" ", "[", "]"].includes(c)))
+          .map((c) => c[0]),
+      ]);
+    }, []) as string[][]
   ).map((row) => row.filter((c) => c));
 
 const instructions: Instruction[] = input.reduce((acc, row) => {
