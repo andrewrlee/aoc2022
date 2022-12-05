@@ -9,7 +9,6 @@ const rucksacks = fs
 
 const getPriority = (s: string) => s.charCodeAt(0) - (s < "a" ? 38 : 96);
 
-
 const getSections = (rucksack: string): Sections => {
   const letters = rucksack.split("");
   return [
