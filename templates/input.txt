@@ -1,1 +1,1 @@
-some-input
+{{ input }}

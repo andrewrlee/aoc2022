@@ -5,10 +5,15 @@ with a JFDI attitude, I just want to taste to those sweet, sweet stars.
 
 Currently using node/typescript.
 
-## Testing
+## Running
 
 use `npm test` to run all tests
 
 use e.g: `npm start -- day01` to run jest in watch mode for a single days solution
 
-use `npm run add-day` to scaffold a new days challenge
+# Scaffolding
+
+use `npm run add-day` to add files for a new days challenge
+
+To download input automatically as part of the scaffolding, add a `.env` file with a `SESSION` key. 
+The `SESSION` value can be obtained via the aoc websites cookies.

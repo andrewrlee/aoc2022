@@ -20,24 +20,16 @@ const chunk = <T>(ar: T[], n: number): T[][] => {
 const rotate = <T>(arr: T[][]) =>
   arr[0].map((_, i) => arr.map((r) => r[i]).reverse());
 
-const createGrid: () => string[][] = () =>
-  rotate(
-    input.reduce(
-      (acc, row) => {
-        const [cont, rows] = acc;
-        if (!cont || row.match(/[\d]+/)?.[0]) return [false, rows];
-        return [
-          true,
-          rows.concat([
-            chunk(row.split(""), 4)
-              .map((cell) => cell.filter((c) => ![" ", "[", "]"].includes(c)))
-              .map((c) => c[0]),
-          ]),
-        ];
-      },
-      [true, []] as [boolean, string[][]]
-    )[1] as string[][]
-  ).map((row) => row.filter((c) => c));
+const grid: Grid = rotate(
+  input.reduce((acc, row) => {
+    if (row.match(/[\d]+/)?.[0]) return acc;
+    return acc.concat([
+      chunk(row.split(""), 4)
+        .map((cell) => cell.filter((c) => ![" ", "[", "]"].includes(c)))
+        .map((c) => c[0]),
+    ]);
+  }, []) as string[][]
+).map((row) => row.filter((c) => c));
 
 const instructions: Instruction[] = input.reduce((acc, row) => {
   const [, n, from, to] = /move (\d+) from (\d+) to (\d+)/?.exec(row) || [];
@@ -52,31 +44,34 @@ const instructions: Instruction[] = input.reduce((acc, row) => {
 }, []);
 
 const move = (crane: Crane, grid: Grid, { from, to, n }: Instruction) => {
-  const fromStack = grid[from];
-  const itemsToMove = fromStack.slice(fromStack.length - n, fromStack.length);
-  grid[from] = fromStack.slice(0, fromStack.length - n);
-  grid[to] = grid[to].concat(crane(itemsToMove));
+  const itemsToMove = grid[from].slice(
+    grid[from].length - n,
+    grid[from].length
+  );
+  return grid.map((r, i) => {
+    if (i === from) return r.slice(0, r.length - n);
+    if (i === to) return r.concat(crane(itemsToMove));
+    return [...r];
+  });
 };
 
-const getResult = (grid: Grid) => grid.map((stack) => stack.slice(-1)).join("");
+const getResult = (grid: Grid, instructions: Instruction[], crane: Crane) => {
+  return instructions
+    .reduce((acc, instruction) => move(crane, acc, instruction), grid)
+    .map((stack) => stack.slice(-1))
+    .join("");
+};
 
 describe("day05", () => {
   test("answer1", () => {
-    const grid = createGrid();
-
-    instructions.forEach((instruction) => {
-      move(craftMover9000, grid, instruction);
-    });
-
-    expect(getResult(grid)).toStrictEqual("JDTMRWCQJ");
+    expect(getResult(grid, instructions, craftMover9000)).toStrictEqual(
+      "JDTMRWCQJ"
+    );
   });
 
   test("answer2", () => {
-    const grid = createGrid();
-    instructions.forEach((instruction) => {
-      move(craftMover9001, grid, instruction);
-    });
-
-    expect(getResult(grid)).toStrictEqual("VHJDDCWRD");
+    expect(getResult(grid, instructions, craftMover9001)).toStrictEqual(
+      "VHJDDCWRD"
+    );
   });
 });
