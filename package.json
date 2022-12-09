@@ -4,7 +4,7 @@
   "description": "Advent of Code 2022, focusing on JFDI",
   "type": "module",
   "scripts": {
-    "test": "jest",
+    "test": "jest --runInBand",
     "start": "jest --watch",
     "add-day": "plop"
   },
