@@ -4,12 +4,14 @@ type MonkeyMap = Map<string, Monkey>;
 
 class Monkey {
   id: string;
+  activity: number = 0;
   items: number[];
+
   divisor: number;
+  trueLoc: string;
+  falseLoc: string;
 
   operationStmt: string;
-  testStmt: string;
-  activity: number = 0;
 
   constructor(private readonly content: string[]) {
     this.id = /Monkey (\d+):/.exec(this.content[0])[1];
@@ -21,14 +23,9 @@ class Monkey {
       .exec(this.content[2])[1]
       .replaceAll(/\w{3}/g, (w) => w.substring(0, 1));
 
-    const [, d] = /Test: divisible by (\d+)/.exec(content[3]);
-    this.divisor = parseInt(d);
-
-    this.testStmt = [content[3], content[4], content[5]]
-      .join(" ")
-      .replace("Test: divisible by ", "r = ( v % ")
-      .replace("    If true: throw to monkey", " == 0 ) ? ")
-      .replace("    If false: throw to monkey", " : ");
+    this.divisor = parseInt(/(\d+)/.exec(content[3])[1]);
+    this.trueLoc = /(\d+)/.exec(content[4])[1];
+    this.falseLoc = /(\d+)/.exec(content[5])[1];
   }
 
   execute(o: number) {
@@ -37,46 +34,38 @@ class Monkey {
     return n;
   }
 
-  testVal(v: number) {
-    let r = 0;
-    eval(this.testStmt);
-    return r.toString();
-  }
-
   addItems(items: number[]) {
     this.items = this.items.concat(items);
   }
 
-  turnAssignments(): Map<string, number[]> {
+  turnAssignmentsForPart1(): Map<string, number[]> {
     this.activity += this.items.length;
-    let r = this.items.reduce((results, item) => {
-      let newWorryValue = Math.floor(this.execute(item) / 3);
-      let destination = this.testVal(newWorryValue);
-      let itemsForMonkeys = [
-        ...(results.get(destination) || []),
-        newWorryValue,
-      ];
-      results.set(destination, itemsForMonkeys);
+    const assignments = this.items.reduce((results, item) => {
+      const value = Math.floor(this.execute(item) / 3);
+      const destination =
+        value % this.divisor === 0 ? this.trueLoc : this.falseLoc;
+      results.set(destination, [...(results.get(destination) || []), value]);
       return results;
     }, new Map<string, number[]>());
     this.items = [];
-    return r;
+    return assignments;
   }
 
-  turnAssignmentsForPart2(cd: number): Map<string, number[]> {
+  turnAssignmentsForPart2(lcm: number): Map<string, number[]> {
     this.activity += this.items.length;
-    let r = this.items.reduce((results, item) => {
-      let newWorryValue = Math.floor(this.execute(item) / 3);
-      let destination = this.testVal(newWorryValue);
-      let itemsForMonkeys = [
+    const assignments = this.items.reduce((results, item) => {
+      const value = this.execute(item);
+      const destination =
+        value % this.divisor === 0 ? this.trueLoc : this.falseLoc;
+      results.set(destination, [
         ...(results.get(destination) || []),
-        newWorryValue,
-      ];
-      results.set(destination, itemsForMonkeys);
+        // I needed help with this!
+        value % lcm,
+      ]);
       return results;
     }, new Map<string, number[]>());
     this.items = [];
-    return r;
+    return assignments;
   }
 }
 
@@ -104,7 +93,7 @@ describe("day11", () => {
     const monkeys = createMonkeyMap();
     for (let i = 0; i < 20; i++) {
       monkeys.forEach((monkey) => {
-        monkey.turnAssignments().forEach((items, m) => {
+        monkey.turnAssignmentsForPart1().forEach((items, m) => {
           monkeys.get(m).addItems(items);
         });
       });
@@ -115,18 +104,20 @@ describe("day11", () => {
 
   test("answer2", () => {
     const monkeys = createMonkeyMap();
-    const cd = Array.from(monkeys.values()).reduce(
+
+    const lcm = Array.from(monkeys.values()).reduce(
       (acc, m) => acc * m.divisor,
       1
     );
-    for (let i = 0; i < 20; i++) {
+
+    for (let i = 0; i < 10000; i++) {
       monkeys.forEach((monkey) => {
-        monkey.turnAssignmentsForPart2(cd).forEach((items, m) => {
+        monkey.turnAssignmentsForPart2(lcm).forEach((items, m) => {
           monkeys.get(m).addItems(items);
         });
       });
     }
 
-    expect(calculateMonkeyBusiness(monkeys)).toStrictEqual(88208);
+    expect(calculateMonkeyBusiness(monkeys)).toStrictEqual(21115867968);
   });
 });
