@@ -28,75 +28,68 @@ const nodes: Node[][] = fs
     }))
   );
 
-const getAdjacents = (nodes: Node[][], node: Node): Node[] => {
-  const { x, y, h } = node;
-  const directions: [number, number][] = [
+const start = nodes.flatMap((row) => row).find((n) => n.type === "S");
+const end = nodes.flatMap((row) => row).find((n) => n.type === "E");
+
+const getAdjacents = (nodes: Node[][], { x, y, h }: Node): Node[] =>
+  [
     [0, 1],
     [0, -1],
     [1, 0],
     [-1, 0],
-  ];
-
-  return directions
+  ]
     .map((d) => nodes[y + d[1]]?.[x + d[0]])
     .filter((c) => c)
     .filter((s) => h + 1 >= s.h);
+
+const findShortestPath = (start: Node, end: Node): number => {
+  const seen = new Set<Node>();
+  const prevNodes = new Map<Node, Node>();
+  const shortestPaths = new Map<Node, number>();
+
+  shortestPaths.set(start, 0);
+
+  const queue = [start];
+
+  while (queue.length > 0) {
+    const currentNode = queue.shift();
+
+    if (currentNode === end) break;
+    if (seen.has(currentNode)) continue;
+
+    seen.add(currentNode);
+    const dist = shortestPaths.get(currentNode);
+
+    for (let n of getAdjacents(nodes, currentNode)) {
+      if (!seen.has(n)) {
+        queue.push(n);
+      }
+      const childDist = dist + 1;
+
+      if (!prevNodes.has(n) || shortestPaths.get(n) < childDist) {
+        shortestPaths.set(n, childDist);
+        prevNodes.set(n, currentNode);
+      }
+    }
+  }
+
+  return shortestPaths.get(end);
 };
 
 describe("day12", () => {
   test("answer1", () => {
-    const seen = new Set<Node>();
-    const prevNodes = new Map<Node, Node>();
-    const shortestPaths = new Map<Node, number>();
-
-    const start = nodes.flatMap((row) => row).find((n) => n.type === "S");
-    const end = nodes.flatMap((row) => row).find((n) => n.type === "E");
-
-    shortestPaths.set(start, 0);
-
-    const queue = [start];
-    
-    while (queue.length > 0) {
-    
-      const currentNode = queue.shift();
-      if (seen.has(currentNode)) {
-        continue;
-      }
-      if (currentNode === end) break;
-      seen.add(currentNode);
-
-      const dist = shortestPaths.get(currentNode);
-
-      const neighbours = getAdjacents(nodes, currentNode);
-      for (let n of neighbours) {
-        if (!seen.has(n)) {
-          queue.push(n);
-        }
-        const childDist = dist + 1;
-
-        if (prevNodes.has(n)) {
-          if (shortestPaths.get(n) < childDist) {
-            shortestPaths.set(n, childDist);
-            prevNodes.set(n, currentNode);
-          }
-        } else {
-          shortestPaths.set(n, childDist);
-          prevNodes.set(n, currentNode);
-        }
-      }
-    }
-
-    console.log(shortestPaths.get(end));
-
-    expect(shortestPaths.get(end)).toStrictEqual(481) 
+    expect(findShortestPath(start, end)).toStrictEqual(481);
   });
 
   test("answer2", () => {
-    const answer = -1;
-    expect(answer).toStrictEqual(1);
-  });
+    const starts = nodes
+      .flatMap((row) => row)
+      .filter((n) => n.h === "a".charCodeAt(0));
 
-  test("other", () => {
-    expect(true).toBe(true);
+    const lowest = starts
+      .map((s) => findShortestPath(s, end))
+      .sort((a, b) => a - b)[0];
+
+    expect(lowest).toStrictEqual(480);
   });
 });
