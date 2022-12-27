@@ -12,7 +12,7 @@ const slidingWindow = <T>(items: T[]): [first: T, second: T][] => {
   return result;
 };
 
-const fillIn = <T>(start: Coordinate, end: Coordinate): Coordinate[] => {
+const findPath = (start: Coordinate, end: Coordinate): Coordinate[] => {
   const [endX, endY] = end;
   let [currentX, currentY] = start;
   const xMod = Math.sign(endX - currentX);
@@ -33,14 +33,12 @@ const walls = fs
     const coords = row
       .split(" -> ")
       .map((c) => c.split(",").map((a) => parseInt(a)) as Coordinate);
-    return slidingWindow(coords).map(([start, end]) => fillIn(start, end));
+    return slidingWindow(coords).map(([start, end]) => findPath(start, end));
   })
   .flat(2);
 
-const maxX = Math.max(...walls.map(([x, y]) => x));
-const maxY = Math.max(...walls.map(([x, y]) => y));
-const minX = Math.min(...walls.map(([x, y]) => x));
-const minY = Math.min(...walls.map(([x, y]) => y));
+const maxX = Math.max(...walls.map(([x, _]) => x));
+const maxY = Math.max(...walls.map(([_, y]) => y));
 
 const createGrid = <T>([maxX, maxY]: Coordinate, defaultValue: T): Grid<T> => {
   const rows: CoordWithVal<T>[][] = [];
@@ -63,10 +61,10 @@ const populateGrid = <T>(grid: Grid<T>, values: Coordinate[], fillValue: T) => {
   });
 };
 
-const tickUnit = (grid: Grid<string>, [entryX, y]: Coordinate) => {
+const tickUnit = (grid: Grid<string>) => {
   const rGrid = rotate(grid);
 
-  const findFirstPoint = () => findDownFrom(entryX);
+  const findFirstPoint = () => findDownFrom(500);
   const findDownFrom = (x: number, xMin: number = 0) => {
     const a = [...rGrid[x]].reverse().slice(xMin);
     const i = a.findIndex(({ value }) => value !== ".");
@@ -95,61 +93,38 @@ describe("day14", () => {
   test("answer1", () => {
     const grid = createGrid([maxX, maxY], ".");
     populateGrid(grid, walls, "#");
-    const nextDestination = tickUnit(grid, [500, 0]);
+    const nextDestination = tickUnit(grid);
 
-    let a = null;
-    for (let i = 0; i < Number.MAX_SAFE_INTEGER; i++) {
-      const destination = nextDestination();
-      if (!destination) {
-        a = i;
-        break;
+    const answer = () => {
+      for (let i = 0; i < Number.MAX_SAFE_INTEGER; i++) {
+        const destination = nextDestination();
+        if (!destination) {
+          return i;
+        }
+        destination.value = "o";
       }
-      destination.value = "o";
-    }
+    };
 
-    expect(a).toStrictEqual(1068);
+    expect(answer()).toStrictEqual(1068);
   });
-
-  const tracePath2 = (grid: Grid<string>, [entryX, y]: Coordinate) => {
-    const rGrid = rotate(grid);
-    const findFirstPoint = () => findDownFrom(entryX);
-    const findDownFrom = (x: number, xMin: number = 0) => {
-      const a = [...rGrid[x]].reverse().slice(xMin);
-      const i = a.findIndex(({ value }) => value !== ".");
-      return a.at(i - 1);
-    };
-
-    const findNextPoint = (
-      current: CoordWithVal<string>
-    ): CoordWithVal<string> => {
-      if (!current) return undefined;
-      const { x, y } = current;
-      const left = grid[y + 1]?.[x - 1];
-      const below = grid[y + 1]?.[x];
-      const right = grid[y + 1]?.[x + 1];
-      if (left?.value === ".")
-        return findNextPoint(findDownFrom(left.x, y + 1));
-      if (right?.value === ".")
-        return findNextPoint(findDownFrom(right.x, y + 1));
-      if (below?.value === ".") return findNextPoint(below);
-      else return current;
-    };
-
-    for (let i = 0; i < Number.MAX_SAFE_INTEGER; i++) {
-      if (grid[0][500].value === "o") {
-        return i;
-      }
-      const currentPoint = findNextPoint(findFirstPoint());
-      currentPoint.value = "o";
-    }
-  };
 
   test("answer2", () => {
     const grid = createGrid([maxX + 500, maxY + 2], ".");
-    const floor = fillIn([0, maxY + 2], [maxX + 100, maxY + 2]);
+    const floor = findPath([0, maxY + 2], [maxX + 100, maxY + 2]);
     populateGrid(grid, [...walls, ...floor], "#");
 
-    const answer = tracePath2(grid, [500, 0]);
-    expect(answer).toStrictEqual(27936);
+    const nextDestination = tickUnit(grid);
+
+    const answer = () => {
+      for (let i = 0; i < Number.MAX_SAFE_INTEGER; i++) {
+        if (grid[0][500].value === "o") {
+          return i;
+        }
+        const destination = nextDestination();
+        destination.value = "o";
+      }
+    };
+
+    expect(answer()).toStrictEqual(27936);
   });
 });
