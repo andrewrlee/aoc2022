@@ -63,7 +63,7 @@ const populateGrid = <T>(grid: Grid<T>, values: Coordinate[], fillValue: T) => {
   });
 };
 
-const tracePath = (grid: Grid<string>, [entryX, y]: Coordinate) => {
+const tickUnit = (grid: Grid<string>, [entryX, y]: Coordinate) => {
   const rGrid = rotate(grid);
 
   const findFirstPoint = () => findDownFrom(entryX);
@@ -81,7 +81,6 @@ const tracePath = (grid: Grid<string>, [entryX, y]: Coordinate) => {
     const left = grid[y + 1]?.[x - 1];
     const below = grid[y + 1]?.[x];
     const right = grid[y + 1]?.[x + 1];
-    if (y + 1 > maxY) return undefined;
     if (left?.value === ".") return findNextPoint(findDownFrom(left.x, y + 1));
     if (right?.value === ".")
       return findNextPoint(findDownFrom(right.x, y + 1));
@@ -89,22 +88,26 @@ const tracePath = (grid: Grid<string>, [entryX, y]: Coordinate) => {
     else return current;
   };
 
-  for (let i = 0; i < Number.MAX_SAFE_INTEGER; i++) {
-    const currentPoint = findNextPoint(findFirstPoint());
-    if (!currentPoint) {
-      return i;
-    }
-    currentPoint.value = "o";
-  }
+  return () => findNextPoint(findFirstPoint());
 };
 
 describe("day14", () => {
   test("answer1", () => {
     const grid = createGrid([maxX, maxY], ".");
     populateGrid(grid, walls, "#");
-    const answer = tracePath(grid, [500, 0]);
+    const nextDestination = tickUnit(grid, [500, 0]);
 
-    expect(answer).toStrictEqual(1068);
+    let a = null;
+    for (let i = 0; i < Number.MAX_SAFE_INTEGER; i++) {
+      const destination = nextDestination();
+      if (!destination) {
+        a = i;
+        break;
+      }
+      destination.value = "o";
+    }
+
+    expect(a).toStrictEqual(1068);
   });
 
   const tracePath2 = (grid: Grid<string>, [entryX, y]: Coordinate) => {
