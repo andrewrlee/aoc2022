@@ -6,67 +6,102 @@ type Row = { s: Coord; b: Coord; d: number };
 const distance = ({ x: x1, y: y1 }: Coord, { x: x2, y: y2 }: Coord) =>
   Math.abs(x1 - x2) + Math.abs(y1 - y2);
 
-const rows: Row[] = fs
-  .readFileSync(`${__dirname}/input.txt`)
-  .toString()
-  .split("\n")
-  .filter((a) => a)
-  .map((line) => {
-    const [x1, y1, x2, y2] = /.*?(-*\d+).*?(-*\d+).*?(-*\d+).*?(-*\d+).*/
-      .exec(line)
-      .slice(1)
-      .map((s) => parseInt(s));
-    return {
-      s: { x: x1, y: y1 },
-      b: { x: x2, y: y2 },
-      d: distance({ x: x1, y: y1 }, { x: x2, y: y2 }),
-    };
-  });
+const createRows: (name: string) => Row[] = (name) =>
+  fs
+    .readFileSync(`${__dirname}/${name}.txt`)
+    .toString()
+    .split("\n")
+    .filter((a) => a)
+    .map((line) => {
+      const [x1, y1, x2, y2] = /.*?(-*\d+).*?(-*\d+).*?(-*\d+).*?(-*\d+).*/
+        .exec(line)
+        .slice(1)
+        .map((s) => parseInt(s));
+      return {
+        s: { x: x1, y: y1 },
+        b: { x: x2, y: y2 },
+        d: distance({ x: x1, y: y1 }, { x: x2, y: y2 }),
+      };
+    });
 
-const findPath = (start: Coord, { x: endX, y: endY }: Coord): Coord[] => {
-  let { x: currentX, y: currentY } = start;
-  const xMod = Math.sign(endX - currentX);
-  const yMod = Math.sign(endY - currentY);
-  const result: Coord[] = [start];
-  while (currentX !== endX || currentY !== endY) {
-    result.push({ x: (currentX += xMod), y: (currentY += yMod) });
-  }
-  return result;
-};
-
-const minAndMax = () => {
-  let lowX = Number.MAX_SAFE_INTEGER;
-  let highX = Number.MIN_SAFE_INTEGER;
-
-  rows.forEach(({ s: { x: x1 }, b: { x: x2 }}) => {
-    lowX = Math.min(lowX, x1, x2);
-    highX = Math.max(highX, x1, x2);
-  });
-  return [lowX, highX];
+const minAndMax = (rs: Row[]) => {
+  const xs = rs.flatMap((r) => [r.s.x, r.b.x]);
+  return [Math.min(...xs), Math.max(...xs)];
 };
 
 describe("day15", () => {
-  test("answer1", () => {
-    const [minX, maxX] = minAndMax();
+  const Slopes = {
+    below: { leftSide: 1, rightSide: -1 },
+    above: { leftSide: -1, rightSide: 1 },
+  };
 
-    const path = findPath({ x: minX, y: 2000000 }, { x: maxX, y: 2000000 }).filter(
-      (loc) =>
-        rows.some(
-          (row) =>
-            !(row.b.x == loc.x && row.b.y == loc.y) &&
-            distance(loc, row.s) <= row.d
-        )
+  enum Type {
+    START,
+    END,
+    POINT,
+  }
+  type Index = { index: number; x: number; type: Type };
+
+  const getIntercepts = (index: number, targetY: number, row: Row): Index[] => {
+    const { s, d } = row;
+    const slopes = s.y < targetY ? Slopes.below : Slopes.above;
+
+    const left = (targetY - s.y) / slopes.leftSide + (s.x - d);
+    const right = (targetY - s.y) / slopes.rightSide + (s.x + d);
+
+    // chosen left but both should be same distance
+    if (distance(s, { x: left, y: targetY }) > d) {
+      return [];
+    }
+    return left === right
+      ? [{ index, x: left, type: Type.POINT }]
+      : [
+          { index, x: left, type: Type.START },
+          { index, x: right, type: Type.END },
+        ];
+  };
+
+  const calculateOccupied = (name: string, targetY: number) => {
+    const rows = createRows(name);
+
+    const indices = rows
+      .flatMap((r, i) => getIntercepts(i, targetY, r))
+      .sort(({ x: x1, type: type1 }, { x: x2 }) => {
+        if (x1 === x2) {
+          return type1 === Type.END ? -1 : 1;
+        }
+        return x1 - x2;
+      });
+
+    const beacons = new Set<number>(
+      rows.filter((r) => r.b.y === targetY).map((r) => r.b.x)
     );
-    
-    expect(path.length).toStrictEqual(4879972);
-  });
 
-  test("answer2", () => {
-    const answer = -1;
-    expect(answer).toStrictEqual(1);
-  });
+    const [min, max] = minAndMax(rows);
+    let state = [];
+    let count = 0;
+    let current = indices.shift();
 
-  test("other", () => {
-    expect(true).toBe(true);
+    for (let i = min; i < max; i++) {
+      if (current?.x !== i && !state.length) continue;
+
+      while (current?.x === i) {
+        if (current.type == Type.START) {
+          state.push(current);
+        } else if (current.type == Type.END) {
+          state.pop();
+        }
+        current = indices.shift();
+      }
+      if (!beacons.has(i)) {
+        count++;
+      }
+    }
+    return count;
+  };
+
+  test("answer1", () => {
+    expect(calculateOccupied("sample", 10)).toStrictEqual(26);
+    expect(calculateOccupied("input", 2000000)).toStrictEqual(4879972);
   });
 });
